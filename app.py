@@ -32,7 +32,7 @@ TESTO_STATUTO_MALNATE = """
 domanda_predefinita = ""
 
 if "curioso" in profilo.lower():
-    st.subheader("💡 Non sai da dare iniziare? Prova una di queste domande frequenti:")
+    st.subheader("💡 Non sai da dove iniziare? Prova una di queste domande frequenti:")
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("📜 Cosa dice lo Statuto Comunale?"):
