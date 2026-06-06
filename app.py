@@ -17,11 +17,11 @@ try:
 except Exception:
     st.error("Configurare la GEMINI_API_KEY nei Secrets di Streamlit.")
 
-# FUNZIONE PER LEGGERE I PDF CARICATI NELLA CARTELLA
-@st.cache_data # Questo comando fa leggere il PDF UNA SOLA VOLTA, risparmiando tempo e memoria!
-def estrai_testo_pdf(nome_file):
+# FUNZIONE VELOCE PER LEGGERE UN SINGOLO PDF ALLA VOLTA
+@st.cache_data
+def estrai_testo_singolo_pdf(nome_file):
     try:
-        if os.path.exists(nome_file):
+        if nome_file and os.path.exists(nome_file):
             reader = PdfReader(nome_file)
             testo = ""
             for page in reader.pages:
@@ -31,7 +31,10 @@ def estrai_testo_pdf(nome_file):
     except Exception as e:
         return f"Errore lettura file: {e}"
 
-# 3. INTERFACCIA: SCELTA DEL PROFILO UTENTE
+# 3. SCANSIONE DEI PDF DISPONIBILI
+file_presenti = [f for f in os.listdir(".") if f.endswith(".pdf")]
+
+# 4. INTERFACCIA: SCELTA DEL PROFILO UTENTE
 st.sidebar.header("Seleziona il tuo profilo")
 profilo = st.sidebar.radio(
     "Che tipo di informazioni cerchi?",
@@ -39,21 +42,16 @@ profilo = st.sidebar.radio(
      "Sono un cittadino esperto (Cerco documenti specifici)")
 )
 
-# 4. SCANSIONE AUTOMATICA DEI PDF PRESENTI
-# Il programma cerca da solo tutti i file .pdf che hai trascinato su GitHub
-file_presenti = [f for f in os.listdir(".") if f.endswith(".pdf")]
-
-# 5. GESTIONE DEI MENU IN BASE AL PROFILO
 domanda_predefinita = ""
 documento_selezionato = None
 
+# 5. GESTIONE DEI MENU
 if "curioso" in profilo.lower():
     st.subheader("💡 Non sai da dove iniziare? Prova una di queste domande frequenti:")
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("📜 Cosa dice lo Statuto Comunale?"):
             domanda_predefinita = "Spiegami in modo semplice cos'è lo Statuto di Malnate e quali sono i punti principali."
-            # Cerca se tra i file caricati c'è lo statuto
             for f in file_presenti:
                 if "statuto" in f.lower(): documento_selezionato = f
     with col2:
@@ -66,9 +64,10 @@ if "curioso" in profilo.lower():
 else:
     st.subheader("📂 Strumenti avanzati per cittadini informati:")
     if file_presenti:
-        documento_selezionato = st.selectbox("Seleziona il documento da consultare:", file_presenti)
+        # L'utente esperto sceglie lui il binario su cui muoversi
+        documento_selezionato = st.selectbox("Seleziona il documento specifico da interrogare:", file_presenti)
     else:
-        st.warning("⚠️ Non hai ancora caricato nessun file PDF su GitHub. L'AI userà solo la ricerca web.")
+        st.warning("⚠️ Nessun file PDF trovato su GitHub.")
 
 # 6. CASSELLA DI TESTO LIBERA (CHAT)
 st.write("---")
@@ -76,26 +75,43 @@ user_input = st.chat_input("Oppure scrivi qui la tua domanda libera...")
 
 domanda_finale = domanda_predefinita if domanda_predefinita else user_input
 
-# 7. ELABORAZIONE RISPOSTA AI
-if p_file := (documento_selezionato if documento_selezionato else (file_presenti[0] if file_presenti else None)):
-    if not documento_selezionato: documento_selezionato = p_file
+# 7. FILTRO INTELLIGENTE: SELEZIONE DEL FILE CORRETTO PER LE DOMANDE LIBERE
+if user_input and file_presenti and not documento_selezionato:
+    with st.spinner("Individuazione del documento pertinente..."):
+        # Chiediamo a Gemini di fare da vigile urbano: deve solo scegliere il nome del file migliore, senza rispondere
+        prompt_filtro = f"""
+        Analizza la domanda del cittadino e seleziona il nome del file PDF più pertinente tra quelli elencati.
+        Rispondi ESCLUSIVAMENTE con il nome del file esatto, senza aggiungere altre parole, spiegazioni o saluti.
+        Se nessuno dei file è pertinente, rispondi con la parola 'WEB'.
 
+        File disponibili: {file_presenti}
+        Domanda: {user_input}
+        """
+        try:
+            res_filtro = client.models.generate_content(model="gemini-2.5-flash", contents=prompt_filtro)
+            scelta_ai = res_filtro.text.strip()
+            if scelta_ai in file_presenti:
+                documento_selezionato = scelta_ai
+        except:
+            documento_selezionato = None
+
+# 8. ELABORAZIONE RISPOSTA MIRATA
 if domanda_finale:
     with st.chat_message("user"):
         st.write(domanda_finale)
         
     with st.chat_message("assistant"):
-        with st.spinner("Elaborazione in corso..."):
+        with st.spinner("Elaborazione risposta..."):
             
-            # Se abbiamo un documento selezionato, leggiamo il testo locale
-            testo_locale = estrai_testo_pdf(documento_selezionato) if documento_selezionato else ""
+            # Ora leggiamo SOLO il file scelto, non tutti insieme!
+            testo_locale = estrai_testo_singolo_pdf(documento_selezionato) if documento_selezionato else ""
             
             if testo_locale and "link" not in domanda_finale.lower():
-                # CHAT SUL PDF LOCALE (Consumo ricerche web: ZERO!)
-                prompt = f"Rispondi alla domanda basandoti esclusivamente su questo documento ufficiale ({documento_selezionato}):\n{testo_locale}\n\nDomanda: {domanda_finale}"
+                st.caption(f"🔍 Risposta generata analizzando esclusivamente il file: **{documento_selezionato}**")
+                prompt = f"Rispondi in modo preciso basandoti solo su questo testo istituzionale ({documento_selezionato}):\n{testo_locale}\n\nDomanda: {domanda_finale}"
                 config = types.GenerateContentConfig()
             else:
-                # RICERCA SUL WEB (Se il file non c'è o l'utente chiede un link esterno)
+                st.caption("🌐 Risposta generata tramite ricerca web sul sito del Comune")
                 prompt = f"Rispondi alla domanda cercando sul sito del Comune di Malnate (comune.malnate.va.it): {domanda_finale}"
                 config = types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())])
             
