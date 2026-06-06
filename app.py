@@ -55,8 +55,8 @@ if "curioso" in profilo.lower():
             for f in file_presenti:
                 if "statuto" in f.lower(): documento_selezionato = f
     with col2:
-        if st.button("👥 Come posso partecipare al Consiglio?"):
-            domanda_predefinita = "Come funziona la partecipazione dei cittadini ai consigli comunali di Malnate?"
+        if st.button("👥 Come è organizzato il Comune"):
+            domanda_predefinita = "Spiegami come è strutturato il Comune e la  sua organizzazione"
     with col3:
         if st.button("📅 Dove trovo gli ultimi verbali?"):
             domanda_predefinita = "Qual è il link sul sito del comune per vedere i verbali del consiglio?"
