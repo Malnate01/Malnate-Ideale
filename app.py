@@ -6,6 +6,21 @@ from pypdf import PdfReader
 
 # 1. CONFIGURAZIONE PAGINA WEB
 st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️", layout="wide")
+
+# RIDUZIONE SPAZIO VUOTO IN ALTO E NELLA BARRA LATERALE
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 1rem;
+        }
+        [data-testid="stSidebarContent"] {
+            padding-top: 1.5rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+
 st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
 st.write("Interroga direttamente gli atti, i regolamenti e i verbali ufficiali del Comune.")
 
