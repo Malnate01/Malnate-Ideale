@@ -9,6 +9,12 @@ st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️"
 st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
 st.write("Interroga direttamente gli atti, i regolamenti e i verbali ufficiali del Comune.")
 
+# Inizializziamo la memoria per il contatore dei token nella sessione
+if "token_ultima_domanda" not in st.session_state:
+    st.session_state.token_ultima_domanda = 0
+if "token_totali_sessione" not in st.session_state:
+    st.session_state.token_totali_sessione = 0
+
 # 2. INIZIALIZZAZIONE CLIENT AI
 try:
     chiave_segreta = st.secrets["GEMINI_API_KEY"]
@@ -33,7 +39,7 @@ def estrai_testo_singolo_pdf(nome_file):
 # 3. SCANSIONE E ORDINAMENTO ALFABETICO DEI PDF DISPONIBILI
 file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
 
-# 4. BARRA LATERALE SINISTRA: SELEZIONE DIRETTA DEL DOCUMENTO
+# 4. BARRA LATERALE SINISTRA: SELEZIONE DOCUMENTO E CONTATORE
 st.sidebar.header("📂 Archivio Documenti")
 documento_selezionato = None
 
@@ -45,6 +51,22 @@ if file_presenti:
     st.sidebar.info("💡 Suggerimento: formula domande specifiche riferite al documento selezionato.")
 else:
     st.sidebar.warning("⚠️ Nessun file PDF trovato nell'archivio.")
+
+# Creiamo uno spazio vuoto nella barra laterale che aggiorneremo a fine risposta
+st.sidebar.write("---")
+riquadro_contatore = st.sidebar.empty()
+
+def aggiorna_contatore():
+    with riquadro_contatore.container():
+        st.caption("📊 **Monitoraggio Consumo Token**")
+        st.metric(
+            label="Ultima interrogazione", 
+            value=f"{st.session_state.token_ultima_domanda:,}".replace(",", ".")
+        )
+        st.caption(f"Totale sessione: **{st.session_state.token_totali_sessione:,}** token".replace(",", "."))
+
+# Mostriamo subito il contatore a zero all'avvio
+aggiorna_contatore()
 
 # 5. AREA PRINCIPALE DESTRA: CHAT DI INTERROGAZIONE
 if documento_selezionato:
@@ -70,11 +92,20 @@ if documento_selezionato:
                             config=config
                         )
                         st.write(response.text)
+                        
+                        # Leggiamo i dati reali di consumo restituiti da Google
+                        if response.usage_metadata:
+                            consumo_attuale = response.usage_metadata.total_token_count or 0
+                            st.session_state.token_ultima_domanda = consumo_attuale
+                            st.session_state.token_totali_sessione += consumo_attuale
+                            aggiorna_contatore()
+                            
                     except Exception as e:
-                        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                            st.warning("⏳ L'assistente è momentaneamente occupato a causa dell'alto numero di richieste. Attendi un minuto e riprova.")
+                        errore_testo = str(e)
+                        if "429" in errore_testo or "RESOURCE_EXHAUSTED" in errore_testo:
+                            st.warning("⏳ L'assistente è momentaneamente occupato per l'alto numero di richieste. Attendi un minuto e riprova.")
                         else:
-                            st.error("Si è verificato un errore temporaneo di connessione. Riprova tra poco.")
+                            st.error(f"Errore di sistema ({errore_testo}). Riprova tra poco.")
                 else:
                     st.error("Impossibile leggere il contenuto di questo file PDF.")
 else:
