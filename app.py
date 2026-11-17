@@ -8,30 +8,45 @@ from pypdf import PdfReader
 st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️", layout="wide")
 
 # RIDUZIONE SPAZIO VUOTO IN ALTO E NELLA BARRA LATERALE
+# ELIMINAZIONE INTESTAZIONI VUOTE E RIDUZIONE SPAZIO IN ALTO
 st.markdown("""
     <style>
-        /* Riduce lo spazio superiore nell'area principale a destra */
-        [data-testid="stAppViewBlockContainer"], .main .block-container {
-            padding-top: 1rem !important;
+        /* Nasconde l'intestazione superiore invisibile di Streamlit */
+        header[data-testid="stHeader"], [data-testid="stToolbar"] {
+            display: none !important;
+            height: 0px !important;
+        }
+        /* Nasconde lo spazio vuoto in alto nella colonna di sinistra */
+        [data-testid="stSidebarHeader"] {
+            display: none !important;
+            height: 0px !important;
+            padding: 0px !important;
+        }
+        /* Spinge il contenuto principale in alto */
+        .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
+            padding-top: 0.5rem !important;
             padding-bottom: 1rem !important;
+            margin-top: 0rem !important;
         }
-        /* Riduce lo spazio superiore nella colonna dei documenti a sinistra */
-        [data-testid="stSidebarUserContent"] {
-            padding-top: 1rem !important;
+        /* Spinge l'elenco documenti in alto a sinistra */
+        [data-testid="stSidebarUserContent"], [data-testid="stSidebarContent"] {
+            padding-top: 0.5rem !important;
+            margin-top: 0rem !important;
         }
-        /* Rimpicciolisce leggermente il titolo principale per guadagnare spazio */
+        /* Titoli compatti */
         h1 {
-            font-size: 1.8rem !important;
+            font-size: 1.7rem !important;
             padding-top: 0rem !important;
+            margin-top: 0rem !important;
             margin-bottom: 0.2rem !important;
         }
-        /* Avvicina il sottotitolo del documento attivo */
         h3 {
-            font-size: 1.2rem !important;
-            padding-top: 0.5rem !important;
+            font-size: 1.15rem !important;
+            padding-top: 0.3rem !important;
         }
     </style>
 """, unsafe_allow_html=True)
+
 
 
 
