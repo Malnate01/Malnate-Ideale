@@ -10,15 +10,29 @@ st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️"
 # RIDUZIONE SPAZIO VUOTO IN ALTO E NELLA BARRA LATERALE
 st.markdown("""
     <style>
-        .block-container {
-            padding-top: 1.5rem;
-            padding-bottom: 1rem;
+        /* Riduce lo spazio superiore nell'area principale a destra */
+        [data-testid="stAppViewBlockContainer"], .main .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
         }
-        [data-testid="stSidebarContent"] {
-            padding-top: 1.5rem;
+        /* Riduce lo spazio superiore nella colonna dei documenti a sinistra */
+        [data-testid="stSidebarUserContent"] {
+            padding-top: 1rem !important;
+        }
+        /* Rimpicciolisce leggermente il titolo principale per guadagnare spazio */
+        h1 {
+            font-size: 1.8rem !important;
+            padding-top: 0rem !important;
+            margin-bottom: 0.2rem !important;
+        }
+        /* Avvicina il sottotitolo del documento attivo */
+        h3 {
+            font-size: 1.2rem !important;
+            padding-top: 0.5rem !important;
         }
     </style>
 """, unsafe_allow_html=True)
+
 
 
 st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
