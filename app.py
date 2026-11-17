@@ -9,43 +9,49 @@ st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️"
 
 # RIDUZIONE SPAZIO VUOTO IN ALTO E NELLA BARRA LATERALE
 # ELIMINAZIONE INTESTAZIONI VUOTE E RIDUZIONE SPAZIO IN ALTO
+# RIDUZIONE SPAZIO IN ALTO MANTENENDO IL PULSANTE MENU PER CELLULARI
 st.markdown("""
     <style>
-        /* Nasconde l'intestazione superiore invisibile di Streamlit */
-        header[data-testid="stHeader"], [data-testid="stToolbar"] {
-            display: none !important;
-            height: 0px !important;
+        /* Rende trasparente l'intestazione superiore ma lascia attivo il pulsante > per riaprire il menu */
+        header[data-testid="stHeader"] {
+            background: transparent !important;
+            height: 2.5rem !important;
         }
-        /* Nasconde lo spazio vuoto in alto nella colonna di sinistra */
+        /* Nasconde solo i pulsanti tecnici di Streamlit in alto a destra */
+        [data-testid="stToolbar"], [data-testid="stAppDeployButton"], #MainMenu {
+            display: none !important;
+        }
+        /* Riduce lo spazio nella colonna sinistra senza nascondere la X di chiusura su mobile */
         [data-testid="stSidebarHeader"] {
-            display: none !important;
-            height: 0px !important;
-            padding: 0px !important;
-        }
-        /* Spinge il contenuto principale in alto */
-        .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
             padding-top: 0.5rem !important;
+            padding-bottom: 0.2rem !important;
+            min-height: 2rem !important;
+        }
+        /* Spinge il contenuto principale verso l'alto */
+        .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
+            padding-top: 2.2rem !important;
             padding-bottom: 1rem !important;
             margin-top: 0rem !important;
         }
         /* Spinge l'elenco documenti in alto a sinistra */
         [data-testid="stSidebarUserContent"], [data-testid="stSidebarContent"] {
-            padding-top: 0.5rem !important;
+            padding-top: 0.2rem !important;
             margin-top: 0rem !important;
         }
         /* Titoli compatti */
         h1 {
-            font-size: 1.7rem !important;
+            font-size: 1.6rem !important;
             padding-top: 0rem !important;
             margin-top: 0rem !important;
             margin-bottom: 0.2rem !important;
         }
         h3 {
-            font-size: 1.15rem !important;
+            font-size: 1.1rem !important;
             padding-top: 0.3rem !important;
         }
     </style>
 """, unsafe_allow_html=True)
+
 
 
 
