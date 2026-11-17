@@ -7,7 +7,7 @@ from pypdf import PdfReader
 # 1. CONFIGURAZIONE PAGINA WEB
 st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️", layout="wide")
 st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
-st.write("Il tuo canale diretto con le informazioni e i documenti del Comune.")
+st.write("Interroga direttamente gli atti, i regolamenti e i verbali ufficiali del Comune.")
 
 # 2. INIZIALIZZAZIONE CLIENT AI
 try:
@@ -30,93 +30,52 @@ def estrai_testo_singolo_pdf(nome_file):
     except Exception as e:
         return f"Errore lettura file: {e}"
 
-# 3. SCANSIONE DEI PDF DISPONIBILI
-file_presenti = [f for f in os.listdir(".") if f.endswith(".pdf")]
+# 3. SCANSIONE E ORDINAMENTO ALFABETICO DEI PDF DISPONIBILI
+file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
 
-# 4. INTERFACCIA: SCELTA DEL PROFILO UTENTE
-st.sidebar.header("Seleziona il tuo profilo")
-profilo = st.sidebar.radio(
-    "Che tipo di informazioni cerchi?",
-    ("Sono un cittadino curioso (Voglio capire come funziona)", "Sono un cittadino esperto (Cerco documenti specifici)")
-)
-
-domanda_predefinita = ""
+# 4. BARRA LATERALE SINISTRA: SELEZIONE DIRETTA DEL DOCUMENTO
+st.sidebar.header("📂 Archivio Documenti")
 documento_selezionato = None
-mostra_chat_libera = False
 
-# 5. GESTIONE DEI MENU IN BASE AL PROFILO
-if "curioso" in profilo.lower():
-    st.subheader("💡 Non sai da dove iniziare? Prova una di queste domande frequenti:")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📜 Cosa dice lo Statuto Comunale?"):
-            domanda_predefinita = "Spiegami in modo semplice cos'è lo Statuto di Malnate e quali sono i punti principali."
-            for f in file_presenti:
-                if "statuto" in f.lower(): 
-                    documento_selezionato = f
-                    
-    with col2:
-        if st.button("👥 Come è organizzato il Comune"):
-            domanda_predefinita = "Spiegami come è strutturato il Comune e la sua organizzazione"
-            for f in file_presenti:
-                if "statuto" in f.lower() or "organizza" in f.lower():
-                    documento_selezionato = f
-                    
-    with col3:
-        if st.button("📅 Dove trovo gli ultimi verbali?"):
-            domanda_predefinita = "Quali informazioni sono presenti sui verbali del consiglio comunale?"
-            for f in file_presenti:
-                if "verbale" in f.lower():
-                    documento_selezionato = f
-                    
-    # Per il cittadino curioso la chat libera rimane spenta (mostra_chat_libera = False)
-
+if file_presenti:
+    documento_selezionato = st.sidebar.radio(
+        "Scegli il documento da interrogare:",
+        file_presenti
+    )
+    st.sidebar.info("💡 Suggerimento: formula domande specifiche riferite al documento selezionato.")
 else:
-    # Profilo esperto: abilitiamo la selezione del file e la chat libera
-    st.subheader("📂 Strumenti avanzati per cittadini informati:")
-    if file_presenti:
-        documento_selezionato = st.selectbox("Seleziona il documento specifico da interrogare:", file_presenti)
-        mostra_chat_libera = True
-    else:
-        st.warning("⚠️ Nessun file PDF trovato su GitHub.")
+    st.sidebar.warning("⚠️ Nessun file PDF trovato nell'archivio.")
 
-# 6. CASSELLA DI TESTO LIBERA (SOLO SE ABILITATA)
-st.write("---")
-user_input = None
+# 5. AREA PRINCIPALE DESTRA: CHAT DI INTERROGAZIONE
+if documento_selezionato:
+    st.subheader(f"📄 Documento attivo: {documento_selezionato}")
+    user_input = st.chat_input(f"Fai una domanda su '{documento_selezionato}'...")
 
-if mostra_chat_libera:
-    user_input = st.chat_input("Scrivi qui la tua domanda sul documento selezionato...")
-
-# Scegliamo la domanda da sottoporre all'AI
-domanda_finale = domanda_predefinita if domanda_predefinita else user_input
-
-# 7. ELABORAZIONE RISPOSTA MIRATA CON MESSAGGIO CORTESE PER ERRORI DI QUOTA
-if domanda_finale:
-    with st.chat_message("user"):
-        st.write(domanda_finale)
-        
-    with st.chat_message("assistant"):
-        with st.spinner("Elaborazione risposta..."):
-            testo_locale = estrai_testo_singolo_pdf(documento_selezionato) if documento_selezionato else ""
+    if user_input:
+        with st.chat_message("user"):
+            st.write(user_input)
             
-            if testo_locale:
-                st.caption(f"🔍 Risposta generata analizzando esclusivamente il file: **{documento_selezionato}**")
-                prompt = f"Rispondi in modo preciso basandoti solo su questo testo istituzionale ({documento_selezionato}):\n{testo_locale}\n\nDomanda: {domanda_finale}"
-                config = types.GenerateContentConfig()
+        with st.chat_message("assistant"):
+            with st.spinner("Analisi del documento in corso..."):
+                testo_locale = estrai_testo_singolo_pdf(documento_selezionato)
                 
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=prompt,
-                        config=config
-                    )
-                    st.write(response.text)
-                except Exception as e:
-                    # Se va in errore 429 o altro, mostriamo un messaggio pulito anziché il codice di sistema
-                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                        st.warning("⏳ L'assistente è momentaneamente occupato a causa dell'alto numero di richieste complessive su Google. Per favore, attendi un minuto e riprova la domanda.")
-                    else:
-                        st.error("Si è verificato un momento di manutenzione del sistema. Riprova tra poco.")
-            else:
-                st.write("Seleziona un documento valido per porre questa domanda.")
+                if testo_locale:
+                    prompt = f"Rispondi in modo preciso, chiaro e istituzionale basandoti esclusivamente su questo documento ufficiale ({documento_selezionato}):\n{testo_locale}\n\nDomanda del cittadino: {user_input}"
+                    config = types.GenerateContentConfig()
+                    
+                    try:
+                        response = client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=prompt,
+                            config=config
+                        )
+                        st.write(response.text)
+                    except Exception as e:
+                        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                            st.warning("⏳ L'assistente è momentaneamente occupato a causa dell'alto numero di richieste. Attendi un minuto e riprova.")
+                        else:
+                            st.error("Si è verificato un errore temporaneo di connessione. Riprova tra poco.")
+                else:
+                    st.error("Impossibile leggere il contenuto di questo file PDF.")
+else:
+    st.info("Carica almeno un file PDF su GitHub per iniziare a usare l'assistente.")
