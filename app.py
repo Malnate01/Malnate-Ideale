@@ -22,7 +22,7 @@ st.markdown("""
         }
         /* Imposta un'altezza minima per evitare che l'iframe si schiacci su mobile */
         .stApp {
-            min-height: 750px !important;
+            min-height: 700px !important;
         }
         /* Margini compatti e larghezza adattiva */
         .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
