@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. CSS PER ALTEZZA MINIMA, COMPATTEZZA E RESA RESPONSIVE SU MOBILE E DESKTOP
+# 2. CSS PER STABILIZZARE L'IFRAME E ANCORARE IL CONTATORE SUL FONDO
 st.markdown("""
     <style>
         /* Nasconde elementi superflui di Streamlit */
@@ -20,23 +20,33 @@ st.markdown("""
         header[data-testid="stHeader"], #MainMenu, [data-testid="stAppDeployButton"] {
             display: none !important;
         }
-        /* Imposta un'altezza minima per evitare che l'iframe si schiacci su mobile */
-        .stApp {
-            min-height: 900px !important;
+        /* Stabilizza l'altezza per evitare sbalzi e chiusure improvvise del menu */
+        html, body, [data-testid="stAppViewContainer"] {
+            height: 100vh !important;
+            overflow-x: hidden !important;
         }
-        /* Margini compatti e larghezza adattiva */
+        /* Struttura flessibile che spinge l'ultimo elemento (i token) sempre in fondo */
         .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 2rem !important;
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 96vh !important;
+            padding-top: 1.2rem !important;
+            padding-bottom: 0.8rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-            max-width: 750px !important;
+            max-width: 950px !important;
             margin: 0 auto !important;
         }
-        h1 {
-            font-size: 1rem !important;
-            padding-top: 0rem !important;
-            margin-bottom: 0.3rem !important;
+        /* Spinge in basso il contenitore finale dei token */
+        .stMainBlockContainer > div:last-child,
+        [data-testid="stAppViewBlockContainer"] > div:last-child,
+        .block-container > div:last-child {
+            margin-top: auto !important;
+        }
+        /* Evita che il menu a tendina venga tagliato */
+        [data-baseweb="popover"] {
+            max-height: 320px !important;
+            overflow-y: auto !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -68,41 +78,34 @@ def estrai_testo_singolo_pdf(nome_file):
     except Exception as e:
         return f"Errore lettura file: {e}"
 
-# 4. INTESTAZIONE E SCANSIONE DOCUMENTI
-st.title("📂 Seleziona un atto ufficiale dall'archivio del Comune")
-#st.write("Seleziona un atto ufficiale dall'archivio qui sotto per porre domande sul suo contenuto.")
-
+# 4. SCANSIONE DOCUMENTI E MENU A TENDINA UNICO
 file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
-
-# 5. MENU A TENDINA CENTRALE (Nasconde l'estensione .pdf alla vista)
 documento_selezionato = None
 
 if file_presenti:
     documento_selezionato = st.selectbox(
-        label="📂 Archivio Documenti Comunali:",
+        label="Archivio Documenti",
+        label_visibility="collapsed",
         options=file_presenti,
         index=None,
         format_func=lambda x: x.replace(".pdf", "").replace(".PDF", ""),
-        placeholder="Clicca qui per scegliere il documento da interrogare..."
+        placeholder="📚 Seleziona un atto ufficiale dall'archivio del Comune..."
     )
 else:
     st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
 
-# 6. MODULO DOMANDA E RISPOSTA (Ordine verticale fisso)
+# 5. MODULO DOMANDA E RISPOSTA (Compatto, senza righe vuote o ripetizioni)
 if documento_selezionato:
-    st.divider()
     nome_pulito = documento_selezionato.replace(".pdf", "").replace(".PDF", "")
-    #st.caption(f"📄 Documento attivo: **{nome_pulito}**")
     
     with st.form(key="form_domanda", clear_on_submit=False):
         user_input = st.text_input(
             label="La tua domanda:",
             placeholder="Scrivi qui cosa vuoi sapere su questo documento..."
         )
-       # invia = st.form_submit_button("🔍 Chiedi all'Assistente")
+        invia = st.form_submit_button("🔍 Chiedi all'Assistente")
 
-   # if invia and user_input.strip():
-    if user_input.strip():
+    if invia and user_input.strip():
         with st.spinner("Analisi del documento in corso..."):
             testo_locale = estrai_testo_singolo_pdf(documento_selezionato)
             
@@ -133,9 +136,7 @@ if documento_selezionato:
             else:
                 st.error("Impossibile leggere il contenuto di questo file PDF.")
 
-# 7. CONTATORE SUL FONDO DELLA PAGINA
-st.write("")
-st.divider()
+# 6. CONTATORE ANCORATO SUL FONDO DELL'IFRAME
 with st.expander("📊 Monitoraggio consumo token (Info tecniche)"):
     col1, col2 = st.columns(2)
     col1.metric("Ultima interrogazione", f"{st.session_state.token_ultima_domanda:,}".replace(",", "."))
