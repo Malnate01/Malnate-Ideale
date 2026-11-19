@@ -69,8 +69,8 @@ def estrai_testo_singolo_pdf(nome_file):
         return f"Errore lettura file: {e}"
 
 # 4. INTESTAZIONE E SCANSIONE DOCUMENTI
-st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
-st.write("Seleziona un atto ufficiale dall'archivio qui sotto per porre domande sul suo contenuto.")
+st.title("🏛️ Assistente Civico - Seleziona un atto ufficiale dall'archivio del Comune")
+#st.write("Seleziona un atto ufficiale dall'archivio qui sotto per porre domande sul suo contenuto.")
 
 file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
 
