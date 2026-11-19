@@ -4,50 +4,41 @@ from google import genai
 from google.genai import types
 from pypdf import PdfReader
 
-# 1. CONFIGURAZIONE PAGINA WEB
-st.set_page_config(page_title="Assistente Civico - Malnate", page_icon="🏛️", layout="wide")
+# 1. CONFIGURAZIONE PAGINA WEB (Senza barra laterale per massima resa su PC e Mobile)
+st.set_page_config(
+    page_title="Assistente Civico - Malnate",
+    page_icon="🏛️",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# RIDUZIONE SPAZIO VUOTO IN ALTO E NELLA BARRA LATERALE
-# ELIMINAZIONE INTESTAZIONI VUOTE E RIDUZIONE SPAZIO IN ALTO
-# RIDUZIONE SPAZIO IN ALTO MANTENENDO IL PULSANTE MENU PER CELLULARI
-# RIDUZIONE SPAZIO IN ALTO CON PULSANTE SIDEBAR FORZATO
+# OTTIMIZZAZIONE SPAZIO VERTICALE E PULIZIA INTERFACCIA
 st.markdown("""
     <style>
-        /* Mantiene visibile l'header trasparente per ospitare la freccia */
-        header[data-testid="stHeader"] {
-            background: transparent !important;
-            visibility: visible !important;
-        }
-        /* Forza la visibilità del pulsante per aprire la barra laterale */
-        [data-testid="stExpandSidebarButton"], button[kind="header"] {
-            visibility: visible !important;
-            display: flex !important;
-            color: white !important;
-            background-color: rgba(255, 255, 255, 0.15) !important;
-            border-radius: 6px !important;
-        }
-        /* Nasconde solo i tre puntini del menu opzioni a destra */
-        #MainMenu, [data-testid="stAppDeployButton"] {
+        /* Nasconde la barra laterale e l'intestazione superflua */
+        [data-testid="stSidebar"], [data-testid="collapsedControl"] {
             display: none !important;
         }
-        /* Spinge il contenuto principale in alto lasciando lo spazio per la freccia a sinistra */
-        .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
-            padding-top: 2.5rem !important;
-            padding-bottom: 1rem !important;
+        header[data-testid="stHeader"], #MainMenu, [data-testid="stAppDeployButton"] {
+            display: none !important;
         }
-        /* Titoli compatti */
+        /* Compatta i margini superiori per guadagnare spazio subito */
+        .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            max-width: 950px !important;
+            margin: 0 auto !important;
+        }
+        /* Titolo principale elegante e compatto */
         h1 {
-            font-size: 1.5rem !important;
+            font-size: 1.6rem !important;
             padding-top: 0rem !important;
-            margin-top: 0rem !important;
+            margin-bottom: 0.2rem !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
-st.write("Interroga direttamente gli atti, i regolamenti e i verbali ufficiali del Comune.")
-
-# Inizializziamo la memoria per il contatore dei token nella sessione
+# Memoria per il contatore dei token
 if "token_ultima_domanda" not in st.session_state:
     st.session_state.token_ultima_domanda = 0
 if "token_totali_sessione" not in st.session_state:
@@ -74,42 +65,31 @@ def estrai_testo_singolo_pdf(nome_file):
     except Exception as e:
         return f"Errore lettura file: {e}"
 
-# 3. SCANSIONE E ORDINAMENTO ALFABETICO DEI PDF DISPONIBILI
+# 3. INTESTAZIONE E SCANSIONE DOCUMENTI
+st.title("🏛️ Assistente Civico Digitale - Comune di Malnate")
+st.write("Seleziona un atto ufficiale dall'archivio qui sotto per porre domande specifiche sul suo contenuto.")
+
 file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
 
-# 4. BARRA LATERALE SINISTRA: SELEZIONE DOCUMENTO E CONTATORE
-st.sidebar.header("📂 Archivio Documenti")
+# 4. MENU A TENDINA CENTRALE (Nessun file pre-selezionato all'apertura)
 documento_selezionato = None
 
 if file_presenti:
-    documento_selezionato = st.sidebar.radio(
-        "Scegli il documento da interrogare:",
-        file_presenti
+    documento_selezionato = st.selectbox(
+        label="📂 Archivio Documenti Comunali:",
+        options=file_presenti,
+        index=None,
+        placeholder="Clicca qui per scegliere il documento da interrogare..."
     )
-    st.sidebar.info("💡 Suggerimento: formula domande specifiche riferite al documento selezionato.")
 else:
-    st.sidebar.warning("⚠️ Nessun file PDF trovato nell'archivio.")
+    st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
 
-# Creiamo uno spazio vuoto nella barra laterale che aggiorneremo a fine risposta
-st.sidebar.write("---")
-riquadro_contatore = st.sidebar.empty()
-
-def aggiorna_contatore():
-    with riquadro_contatore.container():
-        st.caption("📊 **Monitoraggio Consumo Token**")
-        st.metric(
-            label="Ultima interrogazione", 
-            value=f"{st.session_state.token_ultima_domanda:,}".replace(",", ".")
-        )
-        st.caption(f"Totale sessione: **{st.session_state.token_totali_sessione:,}** token".replace(",", "."))
-
-# Mostriamo subito il contatore a zero all'avvio
-aggiorna_contatore()
-
-# 5. AREA PRINCIPALE DESTRA: CHAT DI INTERROGAZIONE
+# 5. AREA CHAT (Compare solo dopo aver scelto un documento)
 if documento_selezionato:
-    st.subheader(f"📄 Documento attivo: {documento_selezionato}")
-    user_input = st.chat_input(f"Fai una domanda su '{documento_selezionato}'...")
+    st.divider()
+    st.caption(f"📄 Stai interrogando: **{documento_selezionato}**")
+    
+    user_input = st.chat_input(f"Scrivi qui la tua domanda su '{documento_selezionato}'...")
 
     if user_input:
         with st.chat_message("user"):
@@ -131,12 +111,10 @@ if documento_selezionato:
                         )
                         st.write(response.text)
                         
-                        # Leggiamo i dati reali di consumo restituiti da Google
                         if response.usage_metadata:
                             consumo_attuale = response.usage_metadata.total_token_count or 0
                             st.session_state.token_ultima_domanda = consumo_attuale
                             st.session_state.token_totali_sessione += consumo_attuale
-                            aggiorna_contatore()
                             
                     except Exception as e:
                         errore_testo = str(e)
@@ -146,5 +124,10 @@ if documento_selezionato:
                             st.error(f"Errore di sistema ({errore_testo}). Riprova tra poco.")
                 else:
                     st.error("Impossibile leggere il contenuto di questo file PDF.")
-else:
-    st.info("Carica almeno un file PDF su GitHub per iniziare a usare l'assistente.")
+
+# 6. CONTATORE DISCRETO A PIÈ DI PAGINA (Apribile con un clic)
+st.write("")
+with st.expander("📊 Monitoraggio consumo token (Info tecniche)"):
+    col1, col2 = st.columns(2)
+    col1.metric("Ultima interrogazione", f"{st.session_state.token_ultima_domanda:,}".replace(",", "."))
+    col2.metric("Totale sessione", f"{st.session_state.token_totali_sessione:,}".replace(",", "."))
