@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 from google import genai
@@ -12,36 +13,34 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. CSS PER STABILIZZARE L'IFRAME E ANCORARE IL CONTATORE SUL FONDO
+# 2. CSS PER ANCORARE IL CONTATORE SUL FONDO E PULIRE L'INTERFACCIA
 st.markdown("""
     <style>
         /* Nasconde elementi superflui di Streamlit */
         [data-testid="stSidebar"], [data-testid="collapsedControl"],
-        header[data-testid="stHeader"], #MainMenu, [data-testid="stAppDeployButton"] {
+        header[data-testid="stHeader"], #MainMenu, [data-testid="stAppDeployButton"], footer {
             display: none !important;
         }
-        /* Stabilizza l'altezza per evitare sbalzi e chiusure improvvise del menu */
-        html, body, [data-testid="stAppViewContainer"] {
-            height: 100vh !important;
-            overflow-x: hidden !important;
-        }
-        /* Struttura flessibile che spinge l'ultimo elemento (i token) sempre in fondo */
+        /* Stabilizza l'altezza e lascia spazio in basso per il contatore fisso */
         .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
-            display: flex !important;
-            flex-direction: column !important;
-            min-height: 96vh !important;
             padding-top: 1.2rem !important;
-            padding-bottom: 0.8rem !important;
+            padding-bottom: 4.5rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             max-width: 950px !important;
             margin: 0 auto !important;
         }
-        /* Spinge in basso il contenitore finale dei token */
-        .stMainBlockContainer > div:last-child,
-        [data-testid="stAppViewBlockContainer"] > div:last-child,
-        .block-container > div:last-child {
-            margin-top: auto !important;
+        /* Ancora fisso sul fondo dell'iframe il riquadro del monitoraggio token */
+        [data-testid="stExpander"] {
+            position: fixed !important;
+            bottom: 12px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: calc(100% - 2rem) !important;
+            max-width: 918px !important;
+            z-index: 999 !important;
+            background-color: #0e1117 !important;
+            border-radius: 8px !important;
         }
         /* Evita che il menu a tendina venga tagliato */
         [data-baseweb="popover"] {
@@ -94,18 +93,16 @@ if file_presenti:
 else:
     st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
 
-# 5. MODULO DOMANDA E RISPOSTA (Compatto, senza righe vuote o ripetizioni)
+# 5. CASELLA DOMANDA DIRETTA (Invio con tasto Enter, nessun bottone sotto)
 if documento_selezionato:
     nome_pulito = documento_selezionato.replace(".pdf", "").replace(".PDF", "")
     
-    with st.form(key="form_domanda", clear_on_submit=False):
-        user_input = st.text_input(
-            label="La tua domanda:",
-            placeholder="Scrivi qui cosa vuoi sapere su questo documento..."
-        )
-        invia = st.form_submit_button("🔍 Chiedi all'Assistente")
+    user_input = st.text_input(
+        label="La tua domanda:",
+        placeholder="Scrivi qui la tua domanda e premi Invio..."
+    )
 
-    if invia and user_input.strip():
+    if user_input and user_input.strip():
         with st.spinner("Analisi del documento in corso..."):
             testo_locale = estrai_testo_singolo_pdf(documento_selezionato)
             
@@ -136,7 +133,7 @@ if documento_selezionato:
             else:
                 st.error("Impossibile leggere il contenuto di questo file PDF.")
 
-# 6. CONTATORE ANCORATO SUL FONDO DELL'IFRAME
+# 6. CONTATORE FISSO SUL FONDO DELL'IFRAME
 with st.expander("📊 Monitoraggio consumo token (Info tecniche)"):
     col1, col2 = st.columns(2)
     col1.metric("Ultima interrogazione", f"{st.session_state.token_ultima_domanda:,}".replace(",", "."))
