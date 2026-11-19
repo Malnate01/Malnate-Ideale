@@ -79,7 +79,7 @@ documento_selezionato = None
 
 if file_presenti:
     documento_selezionato = st.selectbox(
-        #label="📂 Archivio Documenti Comunali:",
+        label="📂 Archivio Documenti Comunali:",
         options=file_presenti,
         index=None,
         format_func=lambda x: x.replace(".pdf", "").replace(".PDF", ""),
