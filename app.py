@@ -69,7 +69,7 @@ def estrai_testo_singolo_pdf(nome_file):
         return f"Errore lettura file: {e}"
 
 # 4. INTESTAZIONE E SCANSIONE DOCUMENTI
-st.title("🏛️ Seleziona un atto ufficiale dall'archivio del Comune")
+st.title("📂 Seleziona un atto ufficiale dall'archivio del Comune")
 #st.write("Seleziona un atto ufficiale dall'archivio qui sotto per porre domande sul suo contenuto.")
 
 file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
@@ -83,7 +83,7 @@ if file_presenti:
         options=file_presenti,
         index=None,
         format_func=lambda x: x.replace(".pdf", "").replace(".PDF", ""),
-        placeholder="📂 Clicca qui per scegliere il documento da interrogare..."
+        placeholder="Clicca qui per scegliere il documento da interrogare..."
     )
 else:
     st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
