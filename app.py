@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 from google import genai
@@ -93,13 +92,14 @@ if file_presenti:
 else:
     st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
 
-# 5. CASELLA DOMANDA DIRETTA (Invio con tasto Enter, nessun bottone sotto)
+# 5. CASELLA DOMANDA DIRETTA (Si azzera automaticamente al cambio documento)
 if documento_selezionato:
     nome_pulito = documento_selezionato.replace(".pdf", "").replace(".PDF", "")
     
     user_input = st.text_input(
         label="La tua domanda:",
-        placeholder="Scrivi qui la tua domanda e premi Invio..."
+        placeholder="Scrivi qui la tua domanda e premi Invio...",
+        key=f"domanda_{documento_selezionato}"
     )
 
     if user_input and user_input.strip():
