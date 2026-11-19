@@ -12,34 +12,23 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. CSS PER ANCORARE IL CONTATORE SUL FONDO E PULIRE L'INTERFACCIA
+# 2. CSS PULITO (Senza elementi fissi che coprono il testo)
 st.markdown("""
     <style>
         /* Nasconde elementi superflui di Streamlit */
         [data-testid="stSidebar"], [data-testid="collapsedControl"],
-        header[data-testid="stHeader"], #MainMenu, [data-testid="stAppDeployButton"], footer {
+        header[data-testid="stHeader"], #MainMenu, [data-testid="stAppDeployButton"],
+        footer, div[class*="viewerBadge"], [data-testid="stStatusWidget"] {
             display: none !important;
         }
-        /* Stabilizza l'altezza e lascia spazio in basso per il contatore fisso */
+        /* Margini compatti e spazio extra in basso per non finire sotto il banner Streamlit */
         .stMainBlockContainer, [data-testid="stAppViewBlockContainer"], .block-container {
             padding-top: 1.2rem !important;
-            padding-bottom: 4.5rem !important;
+            padding-bottom: 4rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
             max-width: 950px !important;
             margin: 0 auto !important;
-        }
-        /* Ancora fisso sul fondo dell'iframe il riquadro del monitoraggio token */
-        [data-testid="stExpander"] {
-            position: fixed !important;
-            bottom: 12px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            width: calc(100% - 2rem) !important;
-            max-width: 918px !important;
-            z-index: 999 !important;
-            background-color: #0e1117 !important;
-            border-radius: 8px !important;
         }
         /* Evita che il menu a tendina venga tagliato */
         [data-baseweb="popover"] {
@@ -49,11 +38,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Memoria per il contatore dei token
+# Memoria di sessione per token e domanda inviata
 if "token_ultima_domanda" not in st.session_state:
     st.session_state.token_ultima_domanda = 0
 if "token_totali_sessione" not in st.session_state:
     st.session_state.token_totali_sessione = 0
+if "domanda_da_eseguire" not in st.session_state:
+    st.session_state.domanda_da_eseguire = ""
 
 # 3. INIZIALIZZAZIONE CLIENT AI
 try:
@@ -92,22 +83,36 @@ if file_presenti:
 else:
     st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
 
-# 5. CASELLA DOMANDA DIRETTA (Si azzera automaticamente al cambio documento)
+# Funzione che cattura la domanda e svuota subito la casella di testo
+def invia_e_pulisci():
+    chiave_input = f"domanda_{documento_selezionato}"
+    testo_scritto = st.session_state.get(chiave_input, "").strip()
+    if testo_scritto:
+        st.session_state.domanda_da_eseguire = testo_scritto
+        st.session_state[chiave_input] = ""
+
+# 5. CASELLA DOMANDA CON PULIZIA AUTOMATICA DOPO L'INVIO
 if documento_selezionato:
     nome_pulito = documento_selezionato.replace(".pdf", "").replace(".PDF", "")
     
-    user_input = st.text_input(
+    st.text_input(
         label="La tua domanda:",
         placeholder="Scrivi qui la tua domanda e premi Invio...",
-        key=f"domanda_{documento_selezionato}"
+        key=f"domanda_{documento_selezionato}",
+        on_change=invia_e_pulisci
     )
 
-    if user_input and user_input.strip():
+    domanda_corrente = st.session_state.domanda_da_eseguire
+    if domanda_corrente:
+        # Azzera subito lo stato per evitare doppi invii al cambio documento
+        st.session_state.domanda_da_eseguire = ""
+        
+        st.info(f"**Domanda:** {domanda_corrente}")
         with st.spinner("Analisi del documento in corso..."):
             testo_locale = estrai_testo_singolo_pdf(documento_selezionato)
             
             if testo_locale:
-                prompt = f"Rispondi in modo preciso, chiaro e istituzionale basandoti esclusivamente su questo documento ufficiale ({nome_pulito}):\n{testo_locale}\n\nDomanda del cittadino: {user_input}"
+                prompt = f"Rispondi in modo preciso, chiaro e istituzionale basandoti esclusivamente su questo documento ufficiale ({nome_pulito}):\n{testo_locale}\n\nDomanda del cittadino: {domanda_corrente}"
                 config = types.GenerateContentConfig()
                 
                 try:
@@ -133,7 +138,8 @@ if documento_selezionato:
             else:
                 st.error("Impossibile leggere il contenuto di questo file PDF.")
 
-# 6. CONTATORE FISSO SUL FONDO DELL'IFRAME
+# 6. CONTATORE NEL FLUSSO NATURALE (Non copre mai il testo)
+st.write("")
 with st.expander("📊 Monitoraggio consumo token (Info tecniche)"):
     col1, col2 = st.columns(2)
     col1.metric("Ultima interrogazione", f"{st.session_state.token_ultima_domanda:,}".replace(",", "."))
