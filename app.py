@@ -34,7 +34,7 @@ st.markdown("""
             margin: 0 auto !important;
         }
         h1 {
-            font-size: 1.5rem !important;
+            font-size: 1rem !important;
             padding-top: 0rem !important;
             margin-bottom: 0.3rem !important;
         }
@@ -69,7 +69,7 @@ def estrai_testo_singolo_pdf(nome_file):
         return f"Errore lettura file: {e}"
 
 # 4. INTESTAZIONE E SCANSIONE DOCUMENTI
-st.title("🏛️ Assistente Civico - Seleziona un atto ufficiale dall'archivio del Comune")
+st.title("🏛️ Seleziona un atto ufficiale dall'archivio del Comune")
 #st.write("Seleziona un atto ufficiale dall'archivio qui sotto per porre domande sul suo contenuto.")
 
 file_presenti = sorted([f for f in os.listdir(".") if f.endswith(".pdf")])
@@ -79,11 +79,11 @@ documento_selezionato = None
 
 if file_presenti:
     documento_selezionato = st.selectbox(
-        label="📂 Archivio Documenti Comunali:",
+        #label="📂 Archivio Documenti Comunali:",
         options=file_presenti,
         index=None,
         format_func=lambda x: x.replace(".pdf", "").replace(".PDF", ""),
-        placeholder="Clicca qui per scegliere il documento da interrogare..."
+        placeholder="📂 Clicca qui per scegliere il documento da interrogare..."
     )
 else:
     st.warning("⚠️ Nessun file PDF trovato nell'archivio.")
@@ -92,16 +92,17 @@ else:
 if documento_selezionato:
     st.divider()
     nome_pulito = documento_selezionato.replace(".pdf", "").replace(".PDF", "")
-    st.caption(f"📄 Documento attivo: **{nome_pulito}**")
+    #st.caption(f"📄 Documento attivo: **{nome_pulito}**")
     
     with st.form(key="form_domanda", clear_on_submit=False):
         user_input = st.text_input(
             label="La tua domanda:",
             placeholder="Scrivi qui cosa vuoi sapere su questo documento..."
         )
-        invia = st.form_submit_button("🔍 Chiedi all'Assistente")
+       # invia = st.form_submit_button("🔍 Chiedi all'Assistente")
 
-    if invia and user_input.strip():
+   # if invia and user_input.strip():
+    if user_input.strip():
         with st.spinner("Analisi del documento in corso..."):
             testo_locale = estrai_testo_singolo_pdf(documento_selezionato)
             
