@@ -7,10 +7,21 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Avvia browser
-        uses: microsoft/playwright-github-action@v1
-      - name: Visita app
+      - name: Installa Playwright
         run: |
-          npm init -y
-          npm install playwright
-          node -e "const { chromium } = require('playwright'); (async () => { const b = await chromium.launch(); const p = await b.newPage(); await p.goto('https://malnate-ideale-qion9xz8svsrtbmjkmqyk3.streamlit.app/?embed=true', { waitUntil: 'networkidle' }); await p.waitForTimeout(10000); await b.close(); })();"
+          pip install playwright
+          playwright install chromium
+      - name: Visita app Streamlit
+        run: |
+          python -c "
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              page.goto('https://malnate-ideale-qion9xz8svsrtbmjkmqyk3.streamlit.app/?embed=true', timeout=60000)
+              page.wait_for_timeout(15000)
+              if page.locator('text=Yes, get this app back up!').is_visible():
+                  page.locator('text=Yes, get this app back up!').click()
+                  page.wait_for_timeout(30000)
+              browser.close()
+          "
